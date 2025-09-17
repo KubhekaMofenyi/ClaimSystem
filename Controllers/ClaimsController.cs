@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using ClaimSystem.Data;
 using ClaimSystem.Models;
-using System;
 
 namespace ClaimSystem.Controllers
 {
@@ -10,6 +9,7 @@ namespace ClaimSystem.Controllers
     {   
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _env;
+
         public ClaimsController(AppDbContext db, IWebHostEnvironment env)
         {
             _db = db; _env = env;

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ClaimSystem.Models;
+using ClaimSystem.Models;   // <-- match namespace
 
-namespace ClaimSystem.Data   // <-- must match what Program.cs uses
+namespace ClaimSystem.Data     // <-- match namespace
 {
     public class AppDbContext : DbContext
     {
