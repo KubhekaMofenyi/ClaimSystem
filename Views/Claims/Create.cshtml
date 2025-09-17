@@ -1,0 +1,28 @@
+﻿@model ClaimSystem.Models.Claim
+@{
+    ViewData["Title"] = "New Claim";
+}
+<h1>New Claim</h1>
+<form asp-action="Create" method="post">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Lecturer Name</label>
+            <input asp-for="LecturerName" class="form-control" />
+            <span asp-validation-for="LecturerName" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Module Code</label>
+            <input asp-for="ModuleCode" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Year</label>
+            <input asp-for="Year" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Month</label>
+            <input asp-for="Month" class="form-control" />
+        </div>
+    </div>
+    <button class="btn btn-success mt-3" type="submit">Create</button>
+    <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+</form>

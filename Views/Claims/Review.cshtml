@@ -1,0 +1,22 @@
+﻿@model IEnumerable<ClaimSystem.Models.Claim>
+@{
+    ViewData["Title"] = "Review Queue";
+}
+<h1>Claims to Review</h1>
+<table class="table table-hover">
+    <thead><tr><th>Lecturer</th><th>Month</th><th>Module</th><th>Total</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td>@c.LecturerName</td>
+                <td>@c.Year-@c.Month.ToString("00")</td>
+                <td>@c.ModuleCode</td>
+                <td>R @c.TotalAmount.ToString("N2")</td>
+                <td><span class="badge bg-warning">@c.Status</span></td>
+                <td><a asp-action="Details" asp-route-id="@c.Id">Open</a></td>
+            </tr>
+        }
+    </tbody>
+</table>
+<a class="btn btn-secondary" asp-action="Index">Back</a>

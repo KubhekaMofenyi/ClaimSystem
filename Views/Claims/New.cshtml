@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "New Claim";
+}
+<h1>New Claim</h1>
+<form>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Year</label>
+            <input class="form-control" value="2025" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Month</label>
+            <select class="form-select"><option>8</option><option>9</option></select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Module Code</label>
+            <input class="form-control" placeholder="e.g., ITC301" />
+        </div>
+    </div>
+
+    <h5 class="mt-4">Line Items</h5>
+    <table class="table">
+        <thead><tr><th>Date</th><th>Hours</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="items">
+            <tr>
+                <td><input class="form-control" type="date" /></td>
+                <td><input class="form-control" /></td>
+                <td><input class="form-control" /></td>
+                <td><input class="form-control" disabled value="0.00" /></td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-secondary">Remove</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <button type="button" class="btn btn-outline-primary">Add Row</button>
+
+    <h5 class="mt-4">Supporting Documents</h5>
+    <div class="border p-4 rounded text-muted">Drag files here (prototype)</div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-success" type="button">Submit (disabled)</button>
+        <a class="btn btn-secondary" href="/Claims">Cancel</a>
+    </div>
+</form>
