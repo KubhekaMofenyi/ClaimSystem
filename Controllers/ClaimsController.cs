@@ -7,10 +7,10 @@ namespace ClaimSystem.Controllers
 {
     public class ClaimsController : Controller
     {   
-        private readonly AppDbContext _db;
+        private readonly ClaimDbContext _db;
         private readonly IWebHostEnvironment _env;
 
-        public ClaimsController(AppDbContext db, IWebHostEnvironment env)
+        public ClaimsController(ClaimDbContext db, IWebHostEnvironment env)
         {
             _db = db; _env = env;
         }
@@ -19,10 +19,11 @@ namespace ClaimSystem.Controllers
         public async Task<IActionResult> Index()
         {
             var claims = await _db.Claims
-                .Include(c => c.LineItems)
                 .AsNoTracking()
+                .Include(c => c.LineItems)
                 .OrderByDescending(c => c.Year).ThenByDescending(c => c.Month)
                 .ToListAsync();
+
             return View(claims);
         }
 
