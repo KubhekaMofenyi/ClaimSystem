@@ -16,6 +16,9 @@ namespace ClaimSystem.Models
 
         public List<ClaimLineItem> LineItems { get; set; } = new();
         public List<SupportingDocument> Documents { get; set; } = new();
+
+        public DateTime SubmittedAtUtc { get; set; } = DateTime.UtcNow;
+        public DateTime? ReviewedAtUtc { get; set; }
     }
     public class ClaimLineItem
     {

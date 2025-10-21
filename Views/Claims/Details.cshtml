@@ -3,58 +3,111 @@
 @{
     ViewData["Title"] = "Claim Details";
 }
-<h1>Claim @Model.Id</h1>
-<p><b>@Model.LecturerName</b> • @Model.ModuleCode • @Model.Year-@Model.Month.ToString("00")</p>
-<p>Status: <span class="badge bg-primary">@Model.Status</span> • Total: <b>R @Model.TotalAmount.ToString("N2")</b></p>
 
-<h4 class="mt-4">Add Line Item</h4>
-<form asp-action="AddLineItem" method="post" class="row g-2">
-    <input type="hidden" name="claimId" value="@Model.Id" />
-    <div class="col-md-3"><input name="Date" type="date" class="form-control" /></div>
-    <div class="col-md-2"><input name="Hours" type="number" step="0.25" class="form-control" placeholder="Hours" /></div>
-    <div class="col-md-2"><input name="RatePerHour" type="number" step="0.01" class="form-control" placeholder="Rate" /></div>
-    <div class="col-md-3"><input name="Notes" class="form-control" placeholder="Notes" /></div>
-    <div class="col-md-2"><button class="btn btn-outline-primary" type="submit">Add</button></div>
-</form>
+@if (TempData["Err"] != null) { <div class="alert alert-danger">@TempData["Err"]</div> }
+@if (TempData["Ok"]  != null) { <div class="alert alert-success">@TempData["Ok"]</div> }
 
-<table class="table table-sm mt-3">
-    <thead><tr><th>Date</th><th>Hours</th><th>Rate</th><th>Amount</th><th>Notes</th></tr></thead>
-    <tbody>
-        @foreach (var li in Model.LineItems)
-        {
-            <tr><td>@li.Date.ToString("yyyy-MM-dd")</td><td>@li.Hours</td><td>@li.RatePerHour</td><td>@li.Amount</td><td>@li.Notes</td></tr>
-        }
-    </tbody>
+<h2>Claim #@Model.Id</h2>
+<p>
+  <strong>@Model.LecturerName</strong> — @Model.ModuleCode — @Model.Month/@Model.Year
+  <span class="ms-2 badge @(Model.Status switch {
+      ClaimStatus.Draft => "bg-secondary",
+      ClaimStatus.Submitted => "bg-info",
+      ClaimStatus.UnderReview => "bg-warning text-dark",
+      ClaimStatus.Approved => "bg-success",
+      ClaimStatus.Rejected => "bg-danger",
+      _ => "bg-dark"
+    })">@Model.Status</span>
+</p>
+
+<h4 class="mt-4">Line Items</h4>
+<table class="table">
+  <thead>
+    <tr><th>Date</th><th>Hours</th><th>Rate</th><th>Amount</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+  @foreach (var li in Model.LineItems)
+  {
+    <tr>
+      <td>@li.Date.ToShortDateString()</td>
+      <td>@li.Hours</td>
+      <td>@li.RatePerHour</td>
+      <td>@li.Amount</td>
+      <td>@li.Notes</td>
+    </tr>
+  }
+  </tbody>
+  <tfoot>
+    <tr>
+      <th colspan="3" class="text-end">Total</th>
+      <th>@Model.TotalAmount</th>
+      <th></th>
+    </tr>
+  </tfoot>
 </table>
 
-<h4 class="mt-4">Upload Supporting Document</h4>
-<form asp-action="Upload" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="claimId" value="@Model.Id" />
-    <input type="file" name="file" class="form-control" />
-    <button class="btn btn-outline-secondary mt-2">Upload</button>
+<form asp-action="AddLineItem" method="post" class="row g-2">
+  <input type="hidden" name="claimId" value="@Model.Id" />
+  <div class="col-md-2">
+    <label class="form-label">Date</label>
+    <input type="date" name="Date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">Hours</label>
+    <input type="number" step="0.25" min="0" max="24" name="Hours" class="form-control" />
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">Rate</label>
+    <input type="number" step="0.01" min="0" name="RatePerHour" class="form-control" />
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Notes</label>
+    <input type="text" name="Notes" class="form-control" />
+  </div>
+  <div class="col-md-2 align-self-end">
+    <button class="btn btn-primary w-100">Add Item</button>
+  </div>
 </form>
 
-<ul class="list-group mt-2">
-    @foreach (var d in Model.Documents)
-    {
-        <li class="list-group-item d-flex justify-content-between">
-            <span>@d.FileName (@(Math.Round(d.SizeBytes / 1024.0)) KB)</span>
-            <a class="btn btn-sm btn-link" href="@d.StoragePath" target="_blank">View</a>
-        </li>
-    }
+<h4 class="mt-4">Supporting Documents</h4>
+<ul>
+@foreach (var d in Model.Documents)
+{
+  <li><a href="@d.StoragePath" target="_blank">@d.FileName</a> (@(d.SizeBytes/1024) KB)</li>
+}
 </ul>
 
-<h4 class="mt-4">Submit / Review</h4>
-<form asp-action="SetStatus" method="post" class="d-flex gap-2">
-    <input type="hidden" name="id" value="@Model.Id" />
-    <select name="status" class="form-select w-auto">
-        <option value="@ClaimStatus.Draft">Draft</option>
-        <option value="@ClaimStatus.Submitted">Submitted</option>
-        <option value="@ClaimStatus.UnderReview">UnderReview</option>
-        <option value="@ClaimStatus.Approved">Approved</option>
-        <option value="@ClaimStatus.Rejected">Rejected</option>
-    </select>
-    <button class="btn btn-warning">Update Status</button>
+<form asp-action="Upload" method="post" enctype="multipart/form-data" class="mt-2">
+  <input type="hidden" name="claimId" value="@Model.Id" />
+  <input type="file" name="file" class="form-control mb-2" />
+  <button class="btn btn-secondary">Upload</button>
 </form>
+
+<h4 class="mt-4">Actions</h4>
+<form asp-action="SetStatus" method="post" class="d-inline">
+  <input type="hidden" name="id" value="@Model.Id" />
+  <input type="hidden" name="status" value="Submitted" />
+  <button class="btn btn-outline-info">Submit</button>
+</form>
+
+<form asp-action="SetStatus" method="post" class="d-inline">
+  <input type="hidden" name="id" value="@Model.Id" />
+  <input type="hidden" name="status" value="UnderReview" />
+  <button class="btn btn-outline-warning">Mark Under Review</button>
+</form>
+
+<form asp-action="SetStatus" method="post" class="d-inline">
+  <input type="hidden" name="id" value="@Model.Id" />
+  <input type="hidden" name="status" value="Approved" />
+  <button class="btn btn-success">Approve</button>
+</form>
+
+<form asp-action="SetStatus" method="post" class="d-inline">
+  <input type="hidden" name="id" value="@Model.Id" />
+  <input type="hidden" name="status" value="Rejected" />
+  <button class="btn btn-danger">Reject</button>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
 
 <a class="btn btn-secondary mt-3" asp-action="Index">Back</a>

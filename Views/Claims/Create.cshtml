@@ -4,28 +4,35 @@
 }
 <h1>New Claim</h1>
 <form asp-action="Create" method="post">
-    <div class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">Lecturer Name</label>
-            <input asp-for="LecturerName" class="form-control" />
-            <span asp-validation-for="LecturerName" class="text-danger"></span>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Module Code</label>
-            <input asp-for="ModuleCode" class="form-control" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Year</label>
+    <div class="mb-3">
+        <label asp-for="LecturerName" class="form-label"></label>
+        <input asp-for="LecturerName" class="form-control" />
+        <span asp-validation-for="LecturerName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ModuleCode" class="form-label"></label>
+        <input asp-for="ModuleCode" class="form-control" />
+        <span asp-validation-for="ModuleCode" class="text-danger"></span>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-md-3">
+            <label asp-for="Year" class="form-label"></label>
             <input asp-for="Year" class="form-control" />
+            <span asp-validation-for="Year" class="text-danger"></span>
         </div>
-        <div class="col-md-2">
-            <label class="form-label">Month</label>
+        <div class="col-md-3">
+            <label asp-for="Month" class="form-label"></label>
             <input asp-for="Month" class="form-control" />
+            <span asp-validation-for="Month" class="text-danger"></span>
         </div>
     </div>
-    <button class="btn btn-success mt-3" type="submit">Create</button>
-    <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+
+    <input type="hidden" asp-for="Status" value="Submitted" />
+    <button class="btn btn-primary mt-3">Create</button>
 </form>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

@@ -17,7 +17,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ClaimDbContext>();
-    db.Database.EnsureCreated();           // or db.Database.Migrate() if you use migrations
+    db.Database.Migrate();
 }
 
 // Pipeline
