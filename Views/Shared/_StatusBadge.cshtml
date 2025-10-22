@@ -1,0 +1,13 @@
+﻿@model ClaimSystem.Models.ClaimStatus
+@{
+    var (cls, text) = Model switch
+    {
+        ClaimSystem.Models.ClaimStatus.Draft => ("secondary", "Draft"),
+        ClaimSystem.Models.ClaimStatus.Submitted => ("info", "Submitted"),
+        ClaimSystem.Models.ClaimStatus.UnderReview => ("warning", "Under review"),
+        ClaimSystem.Models.ClaimStatus.Approved => ("success", "Approved"),
+        ClaimSystem.Models.ClaimStatus.Rejected => ("danger", "Rejected"),
+        _ => ("secondary", Model.ToString())
+    };
+}
+<span class="badge bg-@cls">@text</span>

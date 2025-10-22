@@ -20,3 +20,71 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Softer cards & focus */
+.card {
+    border-radius: 0.75rem;
+}
+
+.btn, .form-control, .form-select {
+    border-radius: 0.6rem;
+}
+
+/* Timeline used on Details page */
+.timeline {
+    position: relative;
+    margin-left: .5rem;
+}
+
+    .timeline::before {
+        content: "";
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(0,0,0,.1);
+    }
+
+.timeline-item {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: 2px;
+    top: .3rem;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(13,110,253,.15);
+}
+
+.timeline-content {
+    margin-left: .25rem;
+}
+/* Softer cards & buttons */
+.card {
+    border-radius: .75rem;
+}
+
+.btn {
+    border-radius: .6rem;
+}
+
+/* Inputs */
+.form-control, .form-select {
+    border-radius: .6rem;
+}
+
+/* Table rows hover */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.03);
+}
+
+/* Page headings */
+.page-title i {
+    opacity: .8;
+}

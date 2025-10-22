@@ -2,21 +2,81 @@
 @{
     ViewData["Title"] = "My Claims";
 }
-<h1>My Monthly Claims</h1>
-<a class="btn btn-primary mb-3" asp-action="Create">New Claim</a>
-<a class="btn btn-outline-secondary mb-3 ms-2" asp-action="Review">Review Queue</a>
-<table class="table table-striped">
-    <thead><tr><th>Month</th><th>Module</th><th>Total</th><th>Status</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var c in Model)
-        {
-            <tr>
-                <td>@c.Year-@c.Month.ToString("00")</td>
-                <td>@c.ModuleCode</td>
-                <td>R @c.TotalAmount.ToString("N2")</td>
-                <td><span class="badge bg-info">@c.Status</span></td>
-                <td><a asp-action="Details" asp-route-id="@c.Id">Open</a></td>
-            </tr>
-        }
-    </tbody>
-</table>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0"><i class="bi bi-list-check me-2"></i>My Claims</h2>
+    <a class="btn btn-success" asp-action="Create">
+        <i class="bi bi-plus-circle me-1"></i> New Claim
+    </a>
+</div>
+
+<form class="row g-2 mb-3">
+    <div class="col-auto">
+        <input name="q" class="form-control" placeholder="Search by module / month / status..." value="@Context.Request.Query["q"]">
+    </div>
+    <div class="col-auto">
+        <select name="status" class="form-select">
+            <option value="">All statuses</option>
+            <option>Draft</option>
+            <option>Submitted</option>
+            <option>UnderReview</option>
+            <option>CoordinatorApproved</option>
+            <option>CoordinatorRejected</option>
+            <option>ManagerApproved</option>
+            <option>ManagerRejected</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
+    </div>
+</form>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Period</th>
+                    <th>Module</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td><span class="fw-semibold">@c.Month/@c.Year</span></td>
+                        <td>@c.ModuleCode</td>
+                        <td>R @c.TotalAmount.ToString("N2")</td>
+                        <td>@await Html.PartialAsync("_StatusBadge", c.Status)</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary me-1" asp-action="Details" asp-route-id="@c.Id">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            @if (c.Status == ClaimSystem.Models.ClaimStatus.Draft)
+                            {
+                                <form asp-action="SetStatus" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <input type="hidden" name="status" value="Submitted" />
+                                    <button class="btn btn-sm btn-primary">
+                                        <i class="bi bi-send"></i> Submit
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-inbox display-6 d-block mb-2"></i>
+        <div>No claims yet. Create your first claim to get started.</div>
+    </div>
+}
