@@ -108,6 +108,54 @@
   <button class="btn btn-danger">Reject</button>
 </form>
 
+<h4 class="mt-4">Status History</h4>
+@if (Model.StatusHistory != null && Model.StatusHistory.Any())
+{
+  <ul class="list-group">
+    @foreach (var h in Model.StatusHistory.OrderByDescending(x => x.ChangedAtUtc))
+    {
+      <li class="list-group-item">
+        <strong>@h.To</strong>
+        <small class="text-muted">(@h.ChangedAtUtc.ToLocalTime())</small>
+        <div class="small text-muted">from @h.From @((h.ChangedBy != null ? $"by {h.ChangedBy}" : ""))</div>
+      </li>
+    }
+  </ul>
+}
+else
+{
+  <p class="text-muted">No status changes yet.</p>
+}
+
+@if (User.IsInRole("ProgrammeCoordinator"))
+{
+  <form asp-action="CoordinatorDecision" method="post" class="d-inline">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" name="approve" value="true" />
+    <button class="btn btn-success btn-sm">Coordinator Approve</button>
+  </form>
+  <form asp-action="CoordinatorDecision" method="post" class="d-inline">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" name="approve" value="false" />
+    <button class="btn btn-danger btn-sm">Coordinator Reject</button>
+  </form>
+}
+
+@if (User.IsInRole("AcademicManager"))
+{
+  <form asp-action="ManagerDecision" method="post" class="d-inline">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" name="approve" value="true" />
+    <button class="btn btn-primary btn-sm">Manager Final Approve</button>
+  </form>
+  <form asp-action="ManagerDecision" method="post" class="d-inline">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" name="approve" value="false" />
+    <button class="btn btn-outline-danger btn-sm">Manager Final Reject</button>
+  </form>
+}
+
+
 @section Scripts { <partial name="_ValidationScriptsPartial" /> }
 
 <a class="btn btn-secondary mt-3" asp-action="Index">Back</a>

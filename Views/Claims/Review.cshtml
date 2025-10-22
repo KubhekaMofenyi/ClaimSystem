@@ -3,53 +3,55 @@
     ViewData["Title"] = "Review Queue";
 }
 <h1>Claims to Review</h1>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Lecturer</th>
-            <th>Module</th>
-            <th>Period</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var c in Model)
-        {
-            <tr>
-                <td>@c.LecturerName</td>
-                <td>@c.ModuleCode</td>
-                <td>@c.Month/@c.Year</td>
-                <td>@c.TotalAmount.ToString("C")</td>
-                <td><span class="badge bg-warning text-dark">@c.Status</span></td>
-                <td class="text-nowrap">
-                    <a class="btn btn-outline-primary btn-sm" asp-action="Details" asp-route-id="@c.Id">Open</a>
+<form method="get" class="row g-2 mb-3">
+  <div class="col-sm-4">
+    <input name="q" class="form-control" placeholder="Search lecturer or module" value="@Context.Request.Query["q"]" />
+  </div>
+  <div class="col-sm-2"><input name="year"  type="number" class="form-control" placeholder="Year"  value="@Context.Request.Query["year"]" /></div>
+  <div class="col-sm-2"><input name="month" type="number" class="form-control" placeholder="Month" value="@Context.Request.Query["month"]" /></div>
+  <div class="col-sm-2"><button class="btn btn-primary w-100">Filter</button></div>
+</form>
 
-                    <form asp-action="SetStatus" method="post" class="d-inline">
-                        <input type="hidden" name="id" value="@c.Id" />
-                        <input type="hidden" name="status" value="UnderReview" />
-                        <button class="btn btn-secondary btn-sm">Mark Under Review</button>
-                    </form>
-
-                    <form asp-action="SetStatus" method="post" class="d-inline">
-                        <input type="hidden" name="id" value="@c.Id" />
-                        <input type="hidden" name="status" value="Approved" />
-                        <button class="btn btn-success btn-sm">Approve</button>
-                    </form>
-
-                    <form asp-action="SetStatus" method="post" class="d-inline">
-                        <input type="hidden" name="id" value="@c.Id" />
-                        <input type="hidden" name="status" value="Rejected" />
-                        <button class="btn btn-danger btn-sm">Reject</button>
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
+<table class="table table-striped align-middle">
+  <thead><tr>
+    <th>Lecturer</th><th>Module</th><th>Period</th><th>Total</th><th>Status</th><th class="text-end">Actions</th>
+  </tr></thead>
+  <tbody>
+  @foreach (var c in Model)
+  {
+    <tr>
+      <td>@c.LecturerName</td>
+      <td>@c.ModuleCode</td>
+      <td>@c.Month/@c.Year</td>
+      <td>@c.TotalAmount.ToString("C")</td>
+      <td><span class="badge @(c.Status switch{
+              ClaimStatus.Submitted=>"bg-info",
+              ClaimStatus.UnderReview=>"bg-warning text-dark",
+              ClaimStatus.Approved=>"bg-success",
+              ClaimStatus.Rejected=>"bg-danger",
+              _=>"bg-secondary"})">@c.Status</span></td>
+      <td class="text-end">
+        <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm">Open</a>
+        <form asp-action="SetStatus" method="post" class="d-inline">
+          <input type="hidden" name="id" value="@c.Id" />
+          <input type="hidden" name="status" value="UnderReview" />
+          <button class="btn btn-secondary btn-sm">Under Review</button>
+        </form>
+        <form asp-action="SetStatus" method="post" class="d-inline">
+          <input type="hidden" name="id" value="@c.Id" />
+          <input type="hidden" name="status" value="Approved" />
+          <button class="btn btn-success btn-sm">Approve</button>
+        </form>
+        <form asp-action="SetStatus" method="post" class="d-inline">
+          <input type="hidden" name="id" value="@c.Id" />
+          <input type="hidden" name="status" value="Rejected" />
+          <button class="btn btn-danger btn-sm">Reject</button>
+        </form>
+      </td>
+    </tr>
+  }
+  </tbody>
 </table>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
 <a class="btn btn-secondary" asp-action="Index">Back</a>

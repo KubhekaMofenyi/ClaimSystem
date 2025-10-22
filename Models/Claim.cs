@@ -11,11 +11,18 @@ namespace ClaimSystem.Models
         [Range(2020, 2100)] public int Year { get; set; }
         [Range(1, 12)] public int Month { get; set; }
 
+        //for logins
+        public string LecturerUserId { get; set; } = ""; // owner
+        public string? CoordinatorUserId { get; set; }
+        public string? ManagerUserId { get; set; }
+
+
         public ClaimStatus Status { get; set; } = ClaimStatus.Draft;
         public decimal TotalAmount => LineItems?.Sum(li => li.Amount) ?? 0m;
 
         public List<ClaimLineItem> LineItems { get; set; } = new();
         public List<SupportingDocument> Documents { get; set; } = new();
+        public List<ClaimStatusHistory> StatusHistory { get; set; } = new();
 
         public DateTime SubmittedAtUtc { get; set; } = DateTime.UtcNow;
         public DateTime? ReviewedAtUtc { get; set; }
