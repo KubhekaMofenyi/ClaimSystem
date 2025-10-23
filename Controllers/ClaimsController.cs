@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Identity;
 namespace ClaimSystem.Controllers
 {
     public class ClaimsController : Controller
-    {   
+    {
         private readonly ClaimDbContext _db;
         private readonly IWebHostEnvironment _env;
         //logger mainly for upload errors
@@ -43,7 +43,7 @@ namespace ClaimSystem.Controllers
         }
 
         // 2) CREATE (GET/POST)
-        public IActionResult Create() => View(new Claim {Year = DateTime.Now.Year, Month = DateTime.Now.Month, Status = ClaimStatus.Submitted});
+        public IActionResult Create() => View(new Claim { Year = DateTime.Now.Year, Month = DateTime.Now.Month, Status = ClaimStatus.Submitted });
 
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(Roles = IdentitySeeder.LecturerRole)]
@@ -52,7 +52,7 @@ namespace ClaimSystem.Controllers
             if (!ModelState.IsValid) return View(model);
             var uid = _userManager.GetUserId(User)!;
             model.LecturerUserId = uid;
-            model.Status = ClaimStatus.Submitted;
+            model.Status = ClaimStatus.Draft;
             _db.Claims.Add(model);
             await _db.SaveChangesAsync();
             return GoToDetails(model.Id);
@@ -64,11 +64,21 @@ namespace ClaimSystem.Controllers
             var claim = await _db.Claims
                 .Include(c => c.LineItems)
                 .Include(c => c.Documents)
-                .Include(c => c.StatusHistory)
                 .FirstOrDefaultAsync(c => c.Id == id);
+
             if (claim == null) return NotFound();
+
+            var history = await _db.ClaimStatusHistories
+                .Where(h => h.ClaimId == id)
+                .OrderByDescending(h => h.ChangedAtUtc)
+                .AsNoTracking()
+                .ToListAsync();
+
+            ViewBag.StatusHistory = history;
+
             return View(claim);
         }
+
 
         // Add line item
         [HttpPost, ValidateAntiForgeryToken]
@@ -77,7 +87,7 @@ namespace ClaimSystem.Controllers
         {
             var uid = _userManager.GetUserId(User)!;
             var claim = await _db.Claims.FirstOrDefaultAsync(c => c.Id == claimId && c.LecturerUserId == uid);
-            if (claim == null || claim.Status != ClaimStatus.Draft && claim.Status != ClaimStatus.Submitted)
+            if (claim == null || claim.Status != ClaimStatus.Draft)
             { TempData["Err"] = "You can only edit your own draft/submitted claims."; return GoToDetails(claimId); }
 
             if (!ModelState.IsValid || !TryValidateModel(item))
@@ -163,62 +173,91 @@ namespace ClaimSystem.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> SetStatus(int id, ClaimStatus status)
         {
-            try
+            var claim = await _db.Claims.FindAsync(id);
+            if (claim == null) return NotFound();
+
+            var from = claim.Status;
+            var user = User;
+
+            bool isLecturer = user.IsInRole("Lecturer");
+            bool isCoord = user.IsInRole("ProgrammeCoordinator");
+            bool isManager = user.IsInRole("AcademicManager");
+
+            bool allowed = false;
+
+            // Lecturer transitions
+            if (isLecturer)
             {
-                var claim = await _db.Claims.FirstOrDefaultAsync(c => c.Id == id);
-                if (claim == null) return NotFound();
-
-                if (IsValidTransition(claim.Status, status))
-                {
-                    var from = claim.Status;
-                    claim.Status = status;
-                    if (status is ClaimStatus.Approved or ClaimStatus.Rejected)
-                        claim.ReviewedAtUtc = DateTime.UtcNow;
-
-                    _db.ClaimStatusHistories.Add(new ClaimStatusHistory
-                    {
-                        ClaimId = claim.Id,
-                        From = from,
-                        To = status,
-                        ChangedAtUtc = DateTime.UtcNow,
-                        ChangedBy = "Coordinator" // placeholder
-                    });
-
-                    await _db.SaveChangesAsync();
-                    TempData["Ok"] = $"Status set to {claim.Status}.";
-                }
-                else
-                {
-                    TempData["Err"] = $"Invalid transition from {claim.Status} to {status}.";
-                }
-                return GoToDetails(id);
+                if (from == ClaimStatus.Draft && status == ClaimStatus.Submitted) allowed = true;
+                if (from == ClaimStatus.Submitted && status == ClaimStatus.Draft) allowed = true; // optional reopen
             }
-            catch (Exception ex)
+
+            // Coordinator transitions (recommendations only; not final)
+            if (isCoord)
             {
-                _logger.LogError(ex, "SetStatus failed for claim {ClaimId} to {Status}", id, status);
-                TempData["Err"] = "Could not update status.";
-                return GoToDetails(id);
+                // start review
+                if (from == ClaimStatus.Submitted && status == ClaimStatus.UnderReview) allowed = true;
+
+                // while reviewing, coordinator can set a recommendation (and revise it)
+                if ((from == ClaimStatus.UnderReview || from == ClaimStatus.CoordinatorApproved || from == ClaimStatus.CoordinatorRejected) &&
+                    (status == ClaimStatus.CoordinatorApproved || status == ClaimStatus.CoordinatorRejected))
+                    allowed = true;
             }
+
+            // Manager transitions (final)
+            if (isManager)
+            {
+                var reviewable = new[] { ClaimStatus.UnderReview, ClaimStatus.CoordinatorApproved, ClaimStatus.CoordinatorRejected };
+                if (reviewable.Contains(from) && (status == ClaimStatus.Approved || status == ClaimStatus.Rejected))
+                    allowed = true;
+            }
+
+            if (isManager && (from == ClaimStatus.Approved || from == ClaimStatus.Rejected) && status == ClaimStatus.UnderReview)
+            {
+                allowed = true; // allow reopening finalized claims
+            }
+
+            if (!allowed)
+            {
+                TempData["err"] = "You don’t have permission to change to that status from the current state.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            claim.Status = status;
+
+            _db.ClaimStatusHistories.Add(new ClaimStatusHistory
+            {
+                ClaimId = claim.Id,
+                From = from,
+                To = status,
+                ChangedAtUtc = DateTime.UtcNow,
+                ChangedBy = User.Identity?.Name
+            });
+
+            await _db.SaveChangesAsync();
+
+            TempData["ok"] = $"Status set to {status}.";
+            return RedirectToAction(nameof(Details), new { id });
         }
 
+
+
         // 4) Review queue
-        [Authorize(Roles = IdentitySeeder.CoordinatorRole)]
-        public async Task<IActionResult> Review(string? q, int? year, int? month)
+        [Authorize(Roles = IdentitySeeder.CoordinatorRole + "," + IdentitySeeder.ManagerRole)]
+        public async Task<IActionResult> Review()
         {
-            var query = _db.Claims
-                .AsNoTracking()
+            var reviewable = new[] {
+        ClaimStatus.Submitted,
+        ClaimStatus.UnderReview,
+        ClaimStatus.CoordinatorApproved,
+        ClaimStatus.CoordinatorRejected
+    };
+
+            var list = await _db.Claims
                 .Include(c => c.LineItems)
-                .Where(c => c.Status == ClaimStatus.Submitted || c.Status == ClaimStatus.UnderReview);
-
-            if (!string.IsNullOrWhiteSpace(q))
-                query = query.Where(c => c.LecturerName.Contains(q) || c.ModuleCode.Contains(q));
-
-            if (year is not null) query = query.Where(c => c.Year == year);
-            if (month is not null) query = query.Where(c => c.Month == month);
-
-            var list = await query
-                .OrderByDescending(c => c.Year).ThenByDescending(c => c.Month)
-                .ThenBy(c => c.LecturerName)
+                .Where(c => reviewable.Contains(c.Status))
+                .OrderBy(c => c.Status)
+                .ThenByDescending(c => c.Year).ThenByDescending(c => c.Month)
                 .ToListAsync();
 
             return View(list);
@@ -267,5 +306,66 @@ namespace ClaimSystem.Controllers
             TempData["Ok"] = $"Manager {(approve ? "approved" : "rejected")} claim (final).";
             return GoToDetails(id);
         }
+        // ...
+
+        [Authorize(Roles = "AcademicManager")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var claim = await _db.Claims
+                .Include(c => c.LineItems)
+                .Include(c => c.Documents)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (claim == null) return NotFound();
+
+            return View(claim); // simple confirm page
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "AcademicManager")]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var claim = await _db.Claims
+                .Include(c => c.LineItems)
+                .Include(c => c.Documents)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (claim == null)
+            {
+                TempData["err"] = "That claim no longer exists.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // remove any status history
+            var history = _db.ClaimStatusHistories.Where(h => h.ClaimId == id);
+            _db.ClaimStatusHistories.RemoveRange(history);
+
+            // delete physical files
+            foreach (var d in claim.Documents)
+            {
+                // StoragePath looks like "/uploads/<file>"
+                if (!string.IsNullOrWhiteSpace(d.StoragePath))
+                {
+                    // handle both absolute and web-root relative
+                    var path = d.StoragePath.StartsWith("/")
+                        ? Path.Combine(_env.WebRootPath, d.StoragePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar))
+                        : Path.Combine(_env.WebRootPath, d.StoragePath.Replace('/', Path.DirectorySeparatorChar));
+
+                    try { if (System.IO.File.Exists(path)) System.IO.File.Delete(path); }
+                    catch { /* swallow file IO errors; DB will still be consistent */ }
+                }
+            }
+
+            // remove children then parent
+            _db.SupportingDocuments.RemoveRange(claim.Documents);
+            _db.ClaimLineItems.RemoveRange(claim.LineItems);
+            _db.Claims.Remove(claim);
+
+            await _db.SaveChangesAsync();
+            TempData["ok"] = "Claim deleted.";
+            return RedirectToAction(nameof(Index));
+        }
+
     }
 }

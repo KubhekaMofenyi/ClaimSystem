@@ -11,18 +11,23 @@
             </span>
         </li>
         <li class="nav-item">
-            <form class="d-inline" asp-controller="Account" asp-action="Logout" method="post">
-                <button class="btn btn-sm btn-outline-light"><i class="bi bi-box-arrow-right"></i> Logout</button>
+            <!-- Identity Default UI logout -->
+            <form class="d-inline" asp-area="Identity" asp-page="/Account/Logout" method="post">
+                <button type="submit" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
             </form>
         </li>
     }
     else
     {
         <li class="nav-item">
-            <a class="btn btn-sm btn-outline-light me-2" asp-controller="Account" asp-action="Login">Login</a>
+            <!-- Identity Default UI login -->
+            <a class="btn btn-sm btn-outline-light me-2" asp-area="Identity" asp-page="/Account/Login">Login</a>
         </li>
         <li class="nav-item">
-            <a class="btn btn-sm btn-light" asp-controller="Account" asp-action="Register">Register</a>
+            <!-- Identity Default UI register -->
+            <a class="btn btn-sm btn-light" asp-area="Identity" asp-page="/Account/Register">Register</a>
         </li>
     }
 </ul>

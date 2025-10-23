@@ -2,6 +2,113 @@
 @{
     ViewData["Title"] = "Claim #" + Model.Id;
 }
+<div class="d-flex gap-2 mb-3">
+
+    @* Lecturer *@
+    @if (User.IsInRole("Lecturer"))
+    {
+        if (Model.Status == ClaimStatus.Draft)
+        {
+            <form asp-action="SetStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="status" value="@ClaimStatus.Submitted" />
+                <button class="btn btn-primary"><i class="bi bi-send"></i> Submit</button>
+            </form>
+        }
+        else if (Model.Status == ClaimStatus.Submitted)
+        {
+            <form asp-action="SetStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="status" value="@ClaimStatus.Draft" />
+                <button class="btn btn-outline-warning"><i class="bi bi-arrow-counterclockwise"></i> Reopen</button>
+            </form>
+        }
+    }
+
+    @* Coordinator recommendations *@
+    @if (User.IsInRole("ProgrammeCoordinator"))
+    {
+        if (Model.Status == ClaimStatus.Submitted)
+        {
+            <form asp-action="SetStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="status" value="@ClaimStatus.UnderReview" />
+                <button class="btn btn-secondary"><i class="bi bi-eye"></i> Start Review</button>
+            </form>
+        }
+
+        if (Model.Status == ClaimStatus.UnderReview || Model.Status == ClaimStatus.CoordinatorRejected)
+        {
+            <form asp-action="SetStatus" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="status" value="@ClaimStatus.CoordinatorApproved" />
+                <button class="btn btn-success"><i class="bi bi-hand-thumbs-up"></i> Recommend Approve</button>
+            </form>
+        }
+
+        if (Model.Status == ClaimStatus.UnderReview || Model.Status == ClaimStatus.CoordinatorApproved)
+        {
+            <form asp-action="SetStatus" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="status" value="@ClaimStatus.CoordinatorRejected" />
+                <button class="btn btn-danger"><i class="bi bi-hand-thumbs-down"></i> Recommend Reject</button>
+            </form>
+        }
+    }
+
+    @* Manager final decision *@
+    @if (User.IsInRole("AcademicManager") &&
+        (Model.Status == ClaimStatus.UnderReview ||
+        Model.Status == ClaimStatus.CoordinatorApproved ||
+        Model.Status == ClaimStatus.CoordinatorRejected))
+    {
+        <form asp-action="SetStatus" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="status" value="@ClaimStatus.Approved" />
+            <button class="btn btn-success"><i class="bi bi-check2-circle"></i> Approve (Final)</button>
+        </form>
+
+        <form asp-action="SetStatus" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="status" value="@ClaimStatus.Rejected" />
+            <button class="btn btn-danger"><i class="bi bi-x-circle"></i> Reject (Final)</button>
+        </form>
+    }
+    @if (User.IsInRole("AcademicManager"))
+    {
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+            <i class="bi bi-trash"></i> Delete
+        </a>
+    }
+</div>
+
+<div class="d-flex gap-2 mb-3">
+    @if (Model.Status == ClaimStatus.Draft)
+    {
+        <form asp-action="SetStatus" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="status" value="@ClaimStatus.Submitted" />
+            <button class="btn btn-primary"><i class="bi bi-send"></i> Submit</button>
+        </form>
+    }
+    else if (Model.Status == ClaimStatus.Submitted || Model.Status == ClaimStatus.UnderReview)
+    {
+        <form asp-action="SetStatus" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="status" value="@ClaimStatus.Draft" />
+            <button class="btn btn-outline-warning"><i class="bi bi-arrow-counterclockwise"></i> Reopen</button>
+        </form>
+    }
+</div>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Claim @Model.Month/@Model.Year</h2>
     <div>@await Html.PartialAsync("_StatusBadge", Model.Status)</div>
@@ -37,6 +144,42 @@
                             </tr>
                         </tfoot>
                     </table>
+                    @if (Model.Status == ClaimStatus.Draft)
+                    {
+                        <div class="border-top p-3">
+                            <form asp-action="AddLineItem" method="post" class="row g-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="claimId" value="@Model.Id" />
+
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label">Date</label>
+                                    <input class="form-control" type="date" name="item.Date" required />
+                                </div>
+
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label">Hours</label>
+                                    <input class="form-control" type="number" step="0.25" min="0" max="24" name="item.Hours" required />
+                                </div>
+
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label">Rate</label>
+                                    <input class="form-control" type="number" step="0.01" min="0" name="item.RatePerHour" required />
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label">Notes</label>
+                                    <input class="form-control" type="text" name="item.Notes" />
+                                </div>
+
+                                <div class="col-12 col-md-1 d-grid">
+                                    <button class="btn btn-success mt-md-4">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+
                 </div>
             </div>
         </div>
