@@ -1,17 +1,79 @@
-﻿@model IEnumerable<ClaimSystem.Models.HrDashboardVM>
+﻿@model IEnumerable<ClaimSystem.Models.HrClaimSummaryVm>
 
 @{
     ViewData["Title"] = "HR – Claims Summary";
+
     var years = ViewBag.Years as List<int> ?? new List<int>();
     var months = ViewBag.Months as List<int> ?? new List<int>();
     int? selectedYear = ViewBag.SelectedYear as int?;
     int? selectedMonth = ViewBag.SelectedMonth as int?;
+
+    var totalAmount = Model.Sum(m => m.TotalAmount);
+    var totalHours = Model.Sum(m => m.TotalHours);
+    var totalClaims = Model.Sum(m => m.ClaimCount);
 }
 
-<h1 class="mb-3"><i class="bi bi-people me-2"></i>HR Claims Summary</h1>
+<h1 class="mb-3">
+    <i class="bi bi-people me-2"></i>HR Claims Summary
+</h1>
 
+<!-- Top KPI cards -->
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold">Total Approved Amount</div>
+                <div class="fs-3 fw-bold text-success">R @totalAmount.ToString("N2")</div>
+                <div class="text-muted small">
+                    Based on current filters
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold">Total Hours</div>
+                <div class="fs-3 fw-bold">@totalHours</div>
+                <div class="text-muted small">Sum of all approved line items</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold">Number of Claims</div>
+                <div class="fs-3 fw-bold">@totalClaims</div>
+                <div class="text-muted small">Grouped by lecturer &amp; month</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter panel -->
 <div class="card shadow-sm mb-3">
     <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel me-2"></i>Filter
+            </h5>
+            <div class="small text-muted">
+                @if (selectedYear.HasValue || selectedMonth.HasValue)
+                {
+                    <span class="badge bg-primary me-1">
+                        Year: @(selectedYear?.ToString() ?? "All")
+                    </span>
+                    <span class="badge bg-primary">
+                        Month: @(selectedMonth?.ToString("00") ?? "All")
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">No filters applied</span>
+                }
+            </div>
+        </div>
+
         <form method="get" class="row g-2 align-items-end">
             <div class="col-6 col-md-3">
                 <label class="form-label">Year</label>
@@ -37,18 +99,27 @@
                     }
                 </select>
             </div>
-            <div class="col-12 col-md-3 d-grid">
+            <div class="col-6 col-md-3 d-grid">
                 <button class="btn btn-primary">
-                    <i class="bi bi-funnel"></i> Filter
+                    <i class="bi bi-funnel"></i> Apply Filters
                 </button>
+            </div>
+            <div class="col-6 col-md-3 d-grid">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Summary table -->
 <div class="card shadow-sm">
-    <div class="card-header bg-light fw-semibold">
-        Approved Claims by Lecturer &amp; Period
+    <div class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center">
+        <span>Approved claims by lecturer &amp; period</span>
+        <span class="small text-muted">
+            @Model.Count() summary row@(Model.Count() == 1 ? "" : "s")
+        </span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -67,27 +138,38 @@
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-3">
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-info-circle me-1"></i>
                                 No approved claims found for the selected filters.
                             </td>
                         </tr>
                     }
                     else
                     {
-                        foreach (var row in Model)
+                        foreach (var row in Model
+                        .OrderBy(r => r.LecturerName)
+                        .ThenBy(r => r.Year)
+                        .ThenBy(r => r.Month))
                         {
-                            <tr>
+                            var isBig = row.TotalAmount >= 10000; // small visual cue for large totals
+                            <tr class="@(isBig ? "table-warning" : "")">
                                 <td>@row.LecturerName</td>
-                                <td>@row.Month.ToString("00")/@row.Year</td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        @row.Month.ToString("00")/@row.Year
+                                    </span>
+                                </td>
                                 <td class="text-end">@row.ClaimCount</td>
                                 <td class="text-end">@row.TotalHours</td>
-                                <td class="text-end">R @row.TotalAmount.ToString("N2")</td>
+                                <td class="text-end fw-semibold">
+                                    R @row.TotalAmount.ToString("N2")
+                                </td>
                                 <td class="text-end">
                                     <a asp-action="Details"
-                                       asp-route-lecturer="@row.LecturerName"
-                                       asp-route-year="@row.Year"
-                                       asp-route-month="@row.Month"
-                                       class="btn btn-sm btn-outline-secondary">
+                                        asp-route-lecturer="@row.LecturerName"
+                                        asp-route-year="@row.Year"
+                                        asp-route-month="@row.Month"
+                                        class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-file-earmark-text"></i> View Details
                                     </a>
                                 </td>
@@ -95,6 +177,18 @@
                         }
                     }
                 </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="2" class="text-end">Totals</th>
+                            <th class="text-end">@totalClaims</th>
+                            <th class="text-end">@totalHours</th>
+                            <th class="text-end">R @totalAmount.ToString("N2")</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
     </div>

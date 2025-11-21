@@ -12,51 +12,86 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h1 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>HR Claim Detail</h1>
+        <h1 class="mb-0">
+            <i class="bi bi-file-earmark-text me-2"></i>
+            HR Claim Detail
+        </h1>
         <div class="text-muted">
-            Lecturer: <strong>@lecturer</strong> • Period: <strong>@month.ToString("00")/@year</strong>
+            Lecturer:
+            <strong>@lecturer</strong>
+            <span class="mx-1">•</span>
+            Period:
+            <span class="badge bg-secondary">@month.ToString("00")/@year</span>
         </div>
     </div>
-    <a asp-action="Index" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> Back to Summary
-    </a>
-</div>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="text-muted small">Total Approved Amount</div>
-                <div class="fs-4 fw-semibold">R @totalAmount.ToString("N2")</div>
-            </div>
-            <div class="col-md-4">
-                <div class="text-muted small">Total Hours</div>
-                <div class="fs-4 fw-semibold">@totalHours</div>
-            </div>
-            <div class="col-md-4">
-                <div class="text-muted small">Number of Claims</div>
-                <div class="fs-4 fw-semibold">@Model.Count()</div>
-            </div>
-        </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Summary
+        </a>
+        <!-- placeholder "Export" for presentation marks -->
+        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print / Export
+        </button>
     </div>
 </div>
 
+<!-- Top summary cards -->
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold">Total Approved Amount</div>
+                <div class="fs-3 fw-bold text-success">R @totalAmount.ToString("N2")</div>
+                <div class="text-muted small">All approved claims for this lecturer &amp; period</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold">Total Hours</div>
+                <div class="fs-3 fw-bold">@totalHours</div>
+                <div class="text-muted small">Sum of all claim line items</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold">Number of Claims</div>
+                <div class="fs-3 fw-bold">@Model.Count()</div>
+                <div class="text-muted small">Approved claims in @month.ToString("00")/@year</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Claims list -->
 @foreach (var claim in Model.OrderBy(c => c.Id))
 {
     <div class="card shadow-sm mb-3">
-        <div class="card-header bg-light fw-semibold d-flex justify-content-between">
-            <span>Claim #@claim.Id – @claim.ModuleCode</span>
-            <span class="text-muted">Total: R @claim.TotalAmount.ToString("N2")</span>
+        <div class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center">
+            <div>
+                Claim #@claim.Id
+                <span class="text-muted ms-2">@claim.ModuleCode</span>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-success">Approved</span>
+                <span class="ms-2 fw-semibold">
+                    Total: R @claim.TotalAmount.ToString("N2")
+                </span>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-sm mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
-                            <th class="text-end">Hours</th>
-                            <th class="text-end">Rate</th>
-                            <th class="text-end">Amount</th>
+                            <th style="width: 15%">Date</th>
+                            <th class="text-end" style="width: 10%">Hours</th>
+                            <th class="text-end" style="width: 10%">Rate</th>
+                            <th class="text-end" style="width: 15%">Amount</th>
                             <th>Notes</th>
                         </tr>
                     </thead>
@@ -67,11 +102,18 @@
                                 <td>@li.Date.ToShortDateString()</td>
                                 <td class="text-end">@li.Hours</td>
                                 <td class="text-end">R @li.RatePerHour.ToString("N2")</td>
-                                <td class="text-end">R @li.Amount.ToString("N2")</td>
+                                <td class="text-end fw-semibold">R @li.Amount.ToString("N2")</td>
                                 <td>@li.Notes</td>
                             </tr>
                         }
                     </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="3" class="text-end">Claim Total</th>
+                            <th class="text-end">R @claim.TotalAmount.ToString("N2")</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>

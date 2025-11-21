@@ -31,16 +31,87 @@ namespace ClaimSystem.Controllers
             new RedirectToActionResult(nameof(Details), "Claims", new { id });
 
         // 1) LIST / Dashboard
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(ClaimStatus? status, int? year, int? month)
         {
-            var claims = await _db.Claims
-                .AsNoTracking()
+            var user = await _userManager.GetUserAsync(User);
+
+            // Base query: all claims + line items
+            var query = _db.Claims
                 .Include(c => c.LineItems)
-                .OrderByDescending(c => c.Year).ThenByDescending(c => c.Month)
+                .AsQueryable();
+
+            // If the user is a Lecturer, only show THEIR claims
+            if (User.IsInRole("Lecturer"))
+            {
+                var userId = user?.Id;
+                if (userId != null)
+                {
+                    query = query.Where(c => c.LecturerUserId == userId);
+                }
+                else
+                {
+                    // no lecturer user id – show nothing
+                    query = query.Where(c => false);
+                }
+            }
+
+            // For dropdown values we want data after role filter, but BEFORE status/year/month filters
+            var baseQuery = query;
+
+            // Apply filters
+            if (status.HasValue)
+                query = query.Where(c => c.Status == status.Value);
+
+            if (year.HasValue)
+                query = query.Where(c => c.Year == year.Value);
+
+            if (month.HasValue)
+                query = query.Where(c => c.Month == month.Value);
+
+            // Materialise to list first, so summaries run in memory (avoids SQLite decimal Sum error)
+            var list = await query
+                .OrderByDescending(c => c.Year)
+                .ThenByDescending(c => c.Month)
+                .ThenByDescending(c => c.Id)
                 .ToListAsync();
 
-            return View(claims);
+            // ---------- Summary for the dashboard (filtered data) ----------
+            var totalClaims = list.Count;
+            var totalHours = list.SelectMany(c => c.LineItems).Sum(li => li.Hours);
+            var totalAmount = list.Sum(c => c.TotalAmount);
+
+            ViewBag.TotalClaims = totalClaims;
+            ViewBag.TotalHours = totalHours;
+            ViewBag.TotalAmount = totalAmount;
+
+            ViewBag.ApprovedCount = list.Count(c => c.Status == ClaimStatus.Approved);
+            ViewBag.PendingCount = list.Count(c =>
+                c.Status == ClaimStatus.Draft ||
+                c.Status == ClaimStatus.Submitted ||
+                c.Status == ClaimStatus.UnderReview ||
+                c.Status == ClaimStatus.CoordinatorApproved ||
+                c.Status == ClaimStatus.CoordinatorRejected);
+            ViewBag.RejectedCount = list.Count(c => c.Status == ClaimStatus.Rejected);
+
+            // ---------- Filter dropdown data ----------
+            ViewBag.Statuses = Enum.GetValues(typeof(ClaimStatus));
+            ViewBag.SelectedStatus = status;
+
+            ViewBag.Years = await baseQuery
+                .Select(c => c.Year)
+                .Distinct()
+                .OrderBy(y => y)
+                .ToListAsync();
+            ViewBag.SelectedYear = year;
+
+            ViewBag.Months = Enumerable.Range(1, 12).ToList();
+            ViewBag.SelectedMonth = month;
+
+            return View(list);
         }
+
+
+
 
         // 2) CREATE (GET/POST)
         public IActionResult Create() => View(new Claim { Year = DateTime.Now.Year, Month = DateTime.Now.Month, Status = ClaimStatus.Submitted });

@@ -1,82 +1,163 @@
 ﻿@model IEnumerable<ClaimSystem.Models.Claim>
+@using ClaimSystem.Models
+
 @{
     ViewData["Title"] = "My Claims";
+
+    // Filters
+    var statuses = ViewBag.Statuses as Array ?? Array.Empty<object>();
+    ClaimStatus? selectedStatus = ViewBag.SelectedStatus as ClaimStatus?;
+
+    var years = ViewBag.Years as List<int> ?? new List<int>();
+    int? selectedYear = ViewBag.SelectedYear as int?;
+
+    var months = ViewBag.Months as List<int> ?? new List<int>();
+    int? selectedMonth = ViewBag.SelectedMonth as int?;
+
+    // Summary
+    int totalClaims = ViewBag.TotalClaims ?? 0;
+    decimal totalHours = ViewBag.TotalHours ?? 0m;
+    decimal totalAmount = ViewBag.TotalAmount ?? 0m;
+
+    int approvedCount = ViewBag.ApprovedCount ?? 0;
+    int pendingCount = ViewBag.PendingCount ?? 0;
+    int rejectedCount = ViewBag.RejectedCount ?? 0;
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h2 class="mb-0"><i class="bi bi-list-check me-2"></i>My Claims</h2>
-    <a class="btn btn-success" asp-action="Create">
-        <i class="bi bi-plus-circle me-1"></i> New Claim
-    </a>
+<h1 class="mb-3">
+    <i class="bi bi-journal-text me-2"></i>My Claims
+</h1>
+
+<!-- Summary cards (HR-style) -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="row gy-3 align-items-center">
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Total Claims (Filtered)</div>
+                <div class="fs-4 fw-semibold">@totalClaims</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Total Hours</div>
+                <div class="fs-4 fw-semibold">@totalHours</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Total Amount</div>
+                <div class="fs-4 fw-semibold text-success">R @totalAmount.ToString("N2")</div>
+            </div>
+            <div class="col-6 col-md-3 text-md-end">
+                <div class="text-muted small">Status Breakdown</div>
+                <span class="badge bg-success me-1">Approved: @approvedCount</span>
+                <span class="badge bg-warning text-dark me-1">Pending: @pendingCount</span>
+                <span class="badge bg-danger">Rejected: @rejectedCount</span>
+            </div>
+        </div>
+    </div>
 </div>
 
-<form class="row g-2 mb-3">
-    <div class="col-auto">
-        <input name="q" class="form-control" placeholder="Search by module / month / status..." value="@Context.Request.Query["q"]">
-    </div>
-    <div class="col-auto">
-        <select name="status" class="form-select">
-            <option value="">All statuses</option>
-            <option>Draft</option>
-            <option>Submitted</option>
-            <option>UnderReview</option>
-            <option>CoordinatorApproved</option>
-            <option>CoordinatorRejected</option>
-            <option>ManagerApproved</option>
-            <option>ManagerRejected</option>
-        </select>
-    </div>
-    <div class="col-auto">
-        <button class="btn btn-outline-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
-    </div>
-</form>
+<!-- Filters -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    @foreach (ClaimStatus st in statuses)
+                    {
+                        <option value="@st" selected="@(selectedStatus == st)">
+                            @st
+                        </option>
+                    }
+                </select>
+            </div>
 
+            <div class="col-6 col-md-3">
+                <label class="form-label">Year</label>
+                <select name="year" class="form-select">
+                    <option value="">All</option>
+                    @foreach (var y in years)
+                    {
+                        <option value="@y" selected="@(selectedYear == y)">@y</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <label class="form-label">Month</label>
+                <select name="month" class="form-select">
+                    <option value="">All</option>
+                    @foreach (var m in months)
+                    {
+                        <option value="@m" selected="@(selectedMonth == m)">
+                            @m.ToString("00")
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-1 d-grid">
+                <button class="btn btn-primary">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+            </div>
+
+            <div class="col-6 col-md-2 d-grid">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Claims table -->
 <div class="card shadow-sm">
-    <div class="table-responsive">
-        <table class="table align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Period</th>
-                    <th>Module</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in Model)
-                {
+    <div class="card-header bg-light fw-semibold d-flex justify-content-between">
+        <span>Claims</span>
+        <a asp-action="Create" class="btn btn-sm btn-success">
+            <i class="bi bi-plus-lg"></i> New Claim
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
                     <tr>
-                        <td><span class="fw-semibold">@c.Month/@c.Year</span></td>
-                        <td>@c.ModuleCode</td>
-                        <td>R @c.TotalAmount.ToString("N2")</td>
-                        <td>@await Html.PartialAsync("_StatusBadge", c.Status)</td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary me-1" asp-action="Details" asp-route-id="@c.Id">
-                                <i class="bi bi-eye"></i> View
-                            </a>
-                            @if (c.Status == ClaimSystem.Models.ClaimStatus.Draft)
-                            {
-                                <form asp-action="SetStatus" method="post" class="d-inline">
-                                    <input type="hidden" name="id" value="@c.Id" />
-                                    <input type="hidden" name="status" value="Submitted" />
-                                    <button class="btn btn-sm btn-primary">
-                                        <i class="bi bi-send"></i> Submit
-                                    </button>
-                                </form>
-                            }
-                        </td>
+                        <th>Period</th>
+                        <th>Module</th>
+                        <th class="text-end">Total Amount</th>
+                        <th>Status</th>
+                        <th></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No claims found for the selected filters.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in Model)
+                        {
+                            <tr>
+                                <td>@c.Month.ToString("00")/@c.Year</td>
+                                <td>@c.ModuleCode</td>
+                                <td class="text-end">R @c.TotalAmount.ToString("N2")</td>
+                                <td>@await Html.PartialAsync("_StatusBadge", c.Status)</td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-box-arrow-in-right"></i> Open
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-@if (!Model.Any())
-{
-    <div class="text-center text-muted py-5">
-        <i class="bi bi-inbox display-6 d-block mb-2"></i>
-        <div>No claims yet. Create your first claim to get started.</div>
-    </div>
-}
