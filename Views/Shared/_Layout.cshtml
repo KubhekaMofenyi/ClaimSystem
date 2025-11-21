@@ -39,8 +39,16 @@
                                 <a class="nav-link" asp-controller="Claims" asp-action="Review">Review Queue</a>
                             </li>
                         }
+                        @* HR link — Academic Manager only *@
+                        @if (User.IsInRole("HR") || User.IsInRole("AcademicManager"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Hr" asp-action="Index">
+                                    <i class="bi bi-people"></i> HR View
+                                </a>
+                            </li>
+                        }
                     </ul>
-
                     @await Html.PartialAsync("_LoginPartial")
                 </div>
             </div>

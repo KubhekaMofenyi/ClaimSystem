@@ -27,6 +27,7 @@ namespace ClaimSystem.Models
         public DateTime SubmittedAtUtc { get; set; } = DateTime.UtcNow;
         public DateTime? ReviewedAtUtc { get; set; }
     }
+
     public class ClaimLineItem
     {
         public int Id { get; set; }
@@ -39,6 +40,8 @@ namespace ClaimSystem.Models
         public decimal Amount => Math.Round(Hours * RatePerHour);
         public string? Notes { get; set; }
     }
+
+    //HR FUNCTIONS
 
     public class SupportingDocument
     {
