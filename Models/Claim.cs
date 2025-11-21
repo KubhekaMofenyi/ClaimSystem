@@ -36,7 +36,7 @@ namespace ClaimSystem.Models
         [DataType(DataType.Date)] public DateTime Date { get; set; } = DateTime.Today;
         [Range(0, 24)] public decimal Hours { get; set; }
         [Range(0, 99999)] public decimal RatePerHour { get; set; }
-        public decimal Amount => Math.Round(Hours * RatePerHour, 2);
+        public decimal Amount => Math.Round(Hours * RatePerHour);
         public string? Notes { get; set; }
     }
 
