@@ -12,7 +12,7 @@ namespace ClaimSystem.Models
         [Range(1, 12)] public int Month { get; set; }
 
         //for logins
-        public string LecturerUserId { get; set; } = ""; // owner
+        public string LecturerUserId { get; set; } = "";
         public string? CoordinatorUserId { get; set; }
         public string? ManagerUserId { get; set; }
 
